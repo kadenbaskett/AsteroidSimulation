@@ -47,53 +47,53 @@ std::vector<unsigned char> spaceFace6;
 
 float skyboxVertices[] = {
 	// Back face
-	-1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
+	-10.0f, -10.0f, -10.0f,
+	 10.0f, -10.0f, -10.0f,
+	 10.0f,  10.0f, -10.0f,
+	 10.0f,  10.0f, -10.0f,
+	-10.0f,  10.0f, -10.0f,
+	-10.0f, -10.0f, -10.0f,
 
 	// Front face
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
+	-10.0f, -10.0f,  10.0f,
+	 10.0f, -10.0f,  10.0f,
+	 10.0f,  10.0f,  10.0f,
+	 10.0f,  10.0f,  10.0f,
+	-10.0f,  10.0f,  10.0f,
+	-10.0f, -10.0f,  10.0f,
 
 	// Left face
-	-1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
+	-10.0f,  10.0f,  10.0f,
+	-10.0f,  10.0f, -10.0f,
+	-10.0f, -10.0f, -10.0f,
+	-10.0f, -10.0f, -10.0f,
+	-10.0f, -10.0f,  10.0f,
+	-10.0f,  10.0f,  10.0f,
 
 	// Right face
-	1.0f,  1.0f,  1.0f,
-	1.0f,  1.0f, -1.0f,
-	1.0f, -1.0f, -1.0f,
-	1.0f, -1.0f, -1.0f,
-	1.0f, -1.0f,  1.0f,
-	1.0f,  1.0f,  1.0f,
+	10.0f,  10.0f,  10.0f,
+	10.0f,  10.0f, -10.0f,
+	10.0f, -10.0f, -10.0f,
+	10.0f, -10.0f, -10.0f,
+	10.0f, -10.0f,  10.0f,
+	10.0f,  10.0f,  10.0f,
 
 	// Bottom face
-	-1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f, -1.0f,
+	-10.0f, -10.0f, -10.0f,
+	 10.0f, -10.0f, -10.0f,
+	 10.0f, -10.0f,  10.0f,
+	 10.0f, -10.0f,  10.0f,
+	-10.0f, -10.0f,  10.0f,
+	-10.0f, -10.0f, -10.0f,
 
 	// Top face
-	-1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f, 1.0f,
-	 1.0f, 1.0f, 1.0f,
-	 1.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, -1.0f,
+	-10.0f,  10.0f, -10.0f,
+	 10.0f,  10.0f, -10.0f,
+	 10.0f,  10.0f, 10.0f,
+	 10.0f, 10.0f, 10.0f,
+	 10.0f, 10.0f, 10.0f,
+	-10.0f, 10.0f, 10.0f,
+	-10.0f, 10.0f, -10.0f,
 };
 
 float windowWidth = 1024;
@@ -108,6 +108,8 @@ float cameraY = 0.0f; // y axis camera movements
 
 float prevAngleX, prevAngleY;  //previous x and y value for left click
 float currAngleX, currAngleY; //current x and y value for left click
+
+float motionScale = .2;
 
 cy::Matrix4f mvpMatrix;
 cy::Matrix4f viewMatrix;
@@ -157,16 +159,14 @@ void render() {
 	skyboxProgram.Bind();
 
 	// ... set view and projection matrix
-	//viewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
-	//rotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
+	viewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
+	rotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
 	//viewMatrix = rotationMatrix * viewMatrix;
-	//mvpMatrix = projMatrix * viewMatrix * cy::Matrix4f(1.0f) * rotationMatrix;
+	mvpMatrix = projMatrix * viewMatrix * cy::Matrix4f(1.0f) * rotationMatrix;
 
-	GLuint skyboxView = glGetUniformLocation(skyboxProgram.GetID(), "view");
-	glUniformMatrix4fv(skyboxView, 1, GL_FALSE, &viewMatrix(0, 0));
+	GLuint skyboxMVP = glGetUniformLocation(skyboxProgram.GetID(), "mvp");
+	glUniformMatrix4fv(skyboxMVP, 1, GL_FALSE, &mvpMatrix(0, 0));
 
-	GLuint skyboxProjection = glGetUniformLocation(skyboxProgram.GetID(), "projection");
-	glUniformMatrix4fv(skyboxProjection, 1, GL_FALSE, &projMatrix(0, 0));
 
 	glBindVertexArray(skyboxVAO);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
@@ -187,6 +187,9 @@ void keyboard(unsigned char key, int x, int y) {
 void handleMouse(int button, int state, int x, int y) {
 	if (button == GLUT_LEFT_BUTTON) {
 		if (state == GLUT_DOWN) {
+			prevAngleX = (float)x;
+			prevAngleY = (float)y;
+
 			leftButtonDown = true;
 		}
 		else {
@@ -196,37 +199,25 @@ void handleMouse(int button, int state, int x, int y) {
 }
 
 void handleMouseMotion(int x, int y) {
+	currAngleX = (float)x;
+	currAngleY = (float)y;
+
 	// Update view matrix when left mouse button is pressed and dragged
 	if (leftButtonDown)
 	{
 		// Calculate change in mouse position
-		int deltaX = currAngleX - prevX;
-		int deltaY = currAngleY - prevY;
+		int changeX = (currAngleX - prevAngleX) * motionScale;
+		int changeY = (currAngleY - prevAngleY) * motionScale;
 
 		// Calculate rotation angles
-		float rotX = deltaX * 0.4f;
-		float rotY = deltaY * 0.4f;
+		prevAngleX = currAngleX;
+		prevAngleY = currAngleY;
 
-		// Apply rotation to rotation matrix
-		rotationMatrix.SetRotationXYZ(toRadians(rotY), toRadians(rotX), 0.0f);
-
-		// Update view matrix with rotated matrix
-		viewMatrix = rotationMatrix * viewMatrix;
-
-		// Update previous mouse position
-		prevX = currAngleX;
-		prevY = currAngleY;
-
-		// Update MVP matrix
-		mvpMatrix = projMatrix * viewMatrix * cy::Matrix4f(1.0f) * rotationMatrix;
+		// update camera position
+		cameraX += changeY;
+		cameraY += changeX;
 
 		glutPostRedisplay();
-	}
-	else
-	{
-		// Store current mouse position as previous for next frame
-		prevX = currAngleX;
-		prevY = currAngleY;
 	}
 }
 
