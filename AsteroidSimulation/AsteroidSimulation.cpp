@@ -1,6 +1,6 @@
 /*
 * Kaden Baskett
-* 04/06/2023
+* 04/21/2023
 * Interactive Computer Graphics
 * Final Project - Asteroid Simulation
 */
@@ -24,6 +24,7 @@ void idle();
 
 // helpers
 void initialize();
+void update();
 unsigned int loadSkybox();
 void buildSkyboxShaders();
 void updatePhysics();
@@ -64,10 +65,10 @@ float currAngleX, currAngleY; //current x and y value for left click
 
 float motionScale = .2;
 
-cy::Matrix4f mvpMatrix;
-cy::Matrix4f viewMatrix;
-cy::Matrix4f projMatrix;
-cy::Matrix4f rotationMatrix;
+cy::Matrix4f skyboxMVPMatrix;
+cy::Matrix4f skyboxViewMatrix;
+cy::Matrix4f skyboxProjMatrix;
+cy::Matrix4f skyboxRotationMatrix;
 
 int prevX, prevY = 0;
 
@@ -111,14 +112,10 @@ void render() {
 	glDepthMask(GL_FALSE);
 	skyboxProgram.Bind();
 
-	// ... set view and projection matrix
-	viewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
-	rotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
-	//viewMatrix = rotationMatrix * viewMatrix;
-	mvpMatrix = projMatrix * viewMatrix * cy::Matrix4f(1.0f) * rotationMatrix;
+	update();
 
 	GLuint skyboxMVP = glGetUniformLocation(skyboxProgram.GetID(), "mvp");
-	glUniformMatrix4fv(skyboxMVP, 1, GL_FALSE, &mvpMatrix(0, 0));
+	glUniformMatrix4fv(skyboxMVP, 1, GL_FALSE, &skyboxMVPMatrix(0, 0));
 
 
 	glBindVertexArray(skyboxVAO);
@@ -180,13 +177,19 @@ void idle() {
 
 // helpers
 void initialize() {
-	mvpMatrix = cy::Matrix4f(1.0f);
+	skyboxMVPMatrix = cy::Matrix4f(1.0f);
 	cameraPos = cy::Vec3f(0.0f, 0.0f, 3.0f);
-	viewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
-	projMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
-	rotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
+	skyboxViewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
+	skyboxProjMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
+	skyboxRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
 
 	skyboxTexture = loadSkybox();
+}
+
+void update() {
+	skyboxViewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
+	skyboxRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
+	skyboxMVPMatrix = skyboxProjMatrix * skyboxViewMatrix * cy::Matrix4f(1.0f) * skyboxRotationMatrix;
 }
 
 GLuint loadSkybox()
