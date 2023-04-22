@@ -32,6 +32,8 @@ float toRadians(float degrees);
 // space skybox enviroment
 cy::GLSLProgram skyboxProgram;
 
+cy::TriMesh skyboxMesh;
+
 GLuint skyboxTexture;
 GLuint skyboxVAO;
 GLuint skyboxVBO;
@@ -45,56 +47,7 @@ std::vector<unsigned char> spaceFace4;
 std::vector<unsigned char> spaceFace5;
 std::vector<unsigned char> spaceFace6;
 
-float skyboxVertices[] = {
-	// Back face
-	-10.0f, -10.0f, -10.0f,
-	 10.0f, -10.0f, -10.0f,
-	 10.0f,  10.0f, -10.0f,
-	 10.0f,  10.0f, -10.0f,
-	-10.0f,  10.0f, -10.0f,
-	-10.0f, -10.0f, -10.0f,
-
-	// Front face
-	-10.0f, -10.0f,  10.0f,
-	 10.0f, -10.0f,  10.0f,
-	 10.0f,  10.0f,  10.0f,
-	 10.0f,  10.0f,  10.0f,
-	-10.0f,  10.0f,  10.0f,
-	-10.0f, -10.0f,  10.0f,
-
-	// Left face
-	-10.0f,  10.0f,  10.0f,
-	-10.0f,  10.0f, -10.0f,
-	-10.0f, -10.0f, -10.0f,
-	-10.0f, -10.0f, -10.0f,
-	-10.0f, -10.0f,  10.0f,
-	-10.0f,  10.0f,  10.0f,
-
-	// Right face
-	10.0f,  10.0f,  10.0f,
-	10.0f,  10.0f, -10.0f,
-	10.0f, -10.0f, -10.0f,
-	10.0f, -10.0f, -10.0f,
-	10.0f, -10.0f,  10.0f,
-	10.0f,  10.0f,  10.0f,
-
-	// Bottom face
-	-10.0f, -10.0f, -10.0f,
-	 10.0f, -10.0f, -10.0f,
-	 10.0f, -10.0f,  10.0f,
-	 10.0f, -10.0f,  10.0f,
-	-10.0f, -10.0f,  10.0f,
-	-10.0f, -10.0f, -10.0f,
-
-	// Top face
-	-10.0f,  10.0f, -10.0f,
-	 10.0f,  10.0f, -10.0f,
-	 10.0f,  10.0f, 10.0f,
-	 10.0f, 10.0f, 10.0f,
-	 10.0f, 10.0f, 10.0f,
-	-10.0f, 10.0f, 10.0f,
-	-10.0f, 10.0f, -10.0f,
-};
+std::vector<cy::Vec3f> skyboxVertices;
 
 float windowWidth = 1024;
 float windowHeight = 800;
@@ -258,11 +211,11 @@ GLuint loadSkybox()
 	if (err4) {
 		std::cout << "Error loading down space PNG." << std::endl;
 	}
-	unsigned err5 = lodepng::decode(spaceFace5, spaceTexWidth, spaceTexHeight, "spaceBack.PNG");
+	unsigned err5 = lodepng::decode(spaceFace5, spaceTexWidth, spaceTexHeight, "spaceFront.PNG");
 	if (err5) {
 		std::cout << "Error loading back space PNG." << std::endl;
 	}
-	unsigned err6 = lodepng::decode(spaceFace6, spaceTexWidth, spaceTexHeight, "spaceFront.PNG");
+	unsigned err6 = lodepng::decode(spaceFace6, spaceTexWidth, spaceTexHeight, "spaceBack.PNG");
 	if (err6) {
 		std::cout << "Error loading front space PNG." << std::endl;
 	}
@@ -280,18 +233,28 @@ GLuint loadSkybox()
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+	skyboxMesh.LoadFromFileObj("cube.obj");
+	skyboxMesh.ComputeNormals();
+
+	for (int i = 0; i < skyboxMesh.NF(); i++) {
+		skyboxVertices.push_back(skyboxMesh.V(skyboxMesh.F(i).v[0])); //store vertex 1
+		skyboxVertices.push_back(skyboxMesh.V(skyboxMesh.F(i).v[1])); //store vertex 2
+		skyboxVertices.push_back(skyboxMesh.V(skyboxMesh.F(i).v[2])); //store vertex 3
+	}
+
 	glGenVertexArrays(1, &skyboxVAO);
 	glBindVertexArray(skyboxVAO);
 
 	glGenBuffers(1, &skyboxVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * skyboxVertices.size(), &skyboxVertices[0], GL_STATIC_DRAW);
 
 	buildSkyboxShaders();
 
 	GLuint skyboxPos = glGetAttribLocation(skyboxProgram.GetID(), "pos");
 	glEnableVertexAttribArray(skyboxPos);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glVertexAttribPointer(skyboxPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 
 	return textureID;
 }
