@@ -57,19 +57,18 @@ std::vector<unsigned char> spaceFace4;
 std::vector<unsigned char> spaceFace5;
 std::vector<unsigned char> spaceFace6;
 
+// both asteroids
+std::vector<cy::Vec3f> asteroidVertices;
+cy::TriMesh asteroidMesh;
+cyGLTexture2D asteroidTexture;
+std::vector<unsigned char> astroidTextureImage;
+unsigned asteroidTextureWidth, asteroidTextureHeight = 2048;
+
 // asteroid 1
 cy::GLSLProgram firstAsteroidProgram;
-cyGLTexture2D asteroidTexture;
 
-cy::TriMesh firstAsteroidMesh;
-GLuint firstAsteroidTexture;
 GLuint firstAsteroidVAO;
 GLuint firstAsteroidVBO;
-
-std::vector<cy::Vec3f> firstAsteroidVertices;
-std::vector<unsigned char> astroidTextureImage;
-
-unsigned asteroidTextureWidth, asteroidTextureHeight = 2048;
 
 cy::Matrix4f firstAsteroidMVPMatrix;
 cy::Matrix4f firstAsteroidViewMatrix;
@@ -79,6 +78,15 @@ cy::Matrix4f firstAsteroidModelMatrix;
 
 // asteroid 2
 cy::GLSLProgram secondAsteroidProgram;
+
+GLuint secondAsteroidVAO;
+GLuint secondAsteroidVBO;
+
+cy::Matrix4f secondAsteroidMVPMatrix;
+cy::Matrix4f secondAsteroidViewMatrix;
+cy::Matrix4f secondAsteroidProjMatrix;
+cy::Matrix4f secondAsteroidRotationMatrix;
+cy::Matrix4f secondAsteroidModelMatrix;
 
 // display window
 float windowWidth = 1024;
@@ -140,6 +148,8 @@ void render() {
 	update();
 
 	glDepthMask(GL_FALSE);
+
+	// draw space enviroment sky box
 	skyboxProgram.Bind();
 
 	GLuint skyboxMVP = glGetUniformLocation(skyboxProgram.GetID(), "mvp");
@@ -150,14 +160,27 @@ void render() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glDepthMask(GL_TRUE);
 
+	// draw first asteroid
 	firstAsteroidProgram.Bind();
+	firstAsteroidProgram["asteroidTexture"] = 4;
 
 	GLuint firstAsteroidMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
 	glUniformMatrix4fv(firstAsteroidMVP, 1, GL_FALSE, &firstAsteroidMVPMatrix(0, 0));
 
 	glBindVertexArray(firstAsteroidVAO);
-	glDrawArrays(GL_TRIANGLES, 0, firstAsteroidVertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
 
+	// draw second asteroid
+	secondAsteroidProgram.Bind();
+	secondAsteroidProgram["asteroidTexture"] = 4;
+
+	GLuint secondAsteroidMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
+	glUniformMatrix4fv(secondAsteroidMVP, 1, GL_FALSE, &secondAsteroidMVPMatrix(0, 0));
+
+	glBindVertexArray(secondAsteroidVAO);
+	glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+
+	// swap buffers
 	glutSwapBuffers();
 }
 
@@ -225,10 +248,22 @@ void initialize() {
 	firstAsteroidProjMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
 	firstAsteroidRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
 	firstAsteroidModelMatrix = cy::Matrix4f(1.0f);
-	firstAsteroidModelMatrix.SetScale(.025);
+	firstAsteroidModelMatrix.SetScale(.02);
 	firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(-4.0f, -2.0f, 0.0f));
 
 	// second asteroid matrices
+	secondAsteroidMVPMatrix = cy::Matrix4f(1.0f);
+	secondAsteroidViewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
+	secondAsteroidProjMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
+	secondAsteroidRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
+	secondAsteroidModelMatrix = cy::Matrix4f(1.0f);
+	secondAsteroidModelMatrix.SetScale(.015);
+	secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(3.5f, 2.0f, 0.0f));
+
+
+	buildSkyboxShaders();
+	buildFirstAsteroidShaders();
+	buildSecondAsteroidShaders();
 
 	skyboxTexture = loadSkybox();
 	loadAsteroids();
@@ -246,6 +281,9 @@ void update() {
 	firstAsteroidMVPMatrix = firstAsteroidProjMatrix * firstAsteroidViewMatrix * firstAsteroidModelMatrix * firstAsteroidRotationMatrix;
 
 	// update second asteroid matrices
+	secondAsteroidViewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
+	secondAsteroidRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
+	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
 }
 
 GLuint loadSkybox()
@@ -308,10 +346,6 @@ GLuint loadSkybox()
 	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * skyboxVertices.size(), &skyboxVertices[0], GL_STATIC_DRAW);
 
-	buildSkyboxShaders();
-	buildFirstAsteroidShaders();
-	//buildSecondAsteroidShaders();
-
 	GLuint skyboxPos = glGetAttribLocation(skyboxProgram.GetID(), "pos");
 	glEnableVertexAttribArray(skyboxPos);
 	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
@@ -322,6 +356,7 @@ GLuint loadSkybox()
 
 void loadAsteroids()
 {
+	//unsigned err = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
 	unsigned err = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
 	if (err) {
 		std::cout << "Error decoding asterodd texture png." << std::endl;
@@ -330,30 +365,42 @@ void loadAsteroids()
 	asteroidTexture.Initialize();
 	asteroidTexture.SetImage(&astroidTextureImage[0], 4, asteroidTextureWidth, asteroidTextureHeight);
 	asteroidTexture.BuildMipmaps();
-	asteroidTexture.Bind(1);
+	asteroidTexture.Bind(4);
 
-	firstAsteroidMesh.LoadFromFileObj("asteroid.obj");
-	firstAsteroidMesh.ComputeNormals();
+	asteroidMesh.LoadFromFileObj("asteroid.obj");
+	asteroidMesh.ComputeNormals();
 
-	for (int i = 0; i < firstAsteroidMesh.NF(); i++) {
-		firstAsteroidVertices.push_back(firstAsteroidMesh.V(firstAsteroidMesh.F(i).v[0])); //store vertex 1
-		firstAsteroidVertices.push_back(firstAsteroidMesh.V(firstAsteroidMesh.F(i).v[1])); //store vertex 2
-		firstAsteroidVertices.push_back(firstAsteroidMesh.V(firstAsteroidMesh.F(i).v[2])); //store vertex 3
+	for (int i = 0; i < asteroidMesh.NF(); i++) {
+		asteroidVertices.push_back(asteroidMesh.V(asteroidMesh.F(i).v[0])); //store vertex 1
+		asteroidVertices.push_back(asteroidMesh.V(asteroidMesh.F(i).v[1])); //store vertex 2
+		asteroidVertices.push_back(asteroidMesh.V(asteroidMesh.F(i).v[2])); //store vertex 3
 	}
 
+	// first asteroid
 	glGenVertexArrays(1, &firstAsteroidVAO);
 	glBindVertexArray(firstAsteroidVAO);
 
 	glGenBuffers(1, &firstAsteroidVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, firstAsteroidVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * firstAsteroidVertices.size(), &firstAsteroidVertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * asteroidVertices.size(), &asteroidVertices[0], GL_STATIC_DRAW);
 
 	GLuint firstAsteroidPos = glGetAttribLocation(firstAsteroidProgram.GetID(), "pos");
 	glEnableVertexAttribArray(firstAsteroidPos);
 	glBindBuffer(GL_ARRAY_BUFFER, firstAsteroidVBO);
 	glVertexAttribPointer(firstAsteroidPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 
-	firstAsteroidProgram["asteroidTexture"] = 1;
+	// second asteroid
+	glGenVertexArrays(1, &secondAsteroidVAO);
+	glBindVertexArray(secondAsteroidVAO);
+
+	glGenBuffers(1, &secondAsteroidVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, secondAsteroidVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * asteroidVertices.size(), &asteroidVertices[0], GL_STATIC_DRAW);
+
+	GLuint secondAsteroidPos = glGetAttribLocation(secondAsteroidProgram.GetID(), "pos");
+	glEnableVertexAttribArray(secondAsteroidPos);
+	glBindBuffer(GL_ARRAY_BUFFER, firstAsteroidVBO);
+	glVertexAttribPointer(secondAsteroidPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 }
 
 void buildSkyboxShaders() {
