@@ -147,7 +147,7 @@ float firstAsteroidRadius;
 
 float firstAsteroidScale = .02f;
 
-unsigned int firstAstroidParticleNum = 10;
+unsigned int firstAstroidParticleNum = 320;
 
 std::vector<Asteroid> firstAsteroidParticles;
 
@@ -167,7 +167,7 @@ float secondAsteroidRadius;
 
 float secondAsteroidScale = .015f;
 
-unsigned int secondAstroidParticleNum = 15;
+unsigned int secondAstroidParticleNum = 260;
 
 std::vector<Asteroid> secondAsteroidParticles;
 
@@ -278,6 +278,16 @@ void render() {
 		}
 
 		// draw second asteroid's particles
+		secondAsteroidProgram.Bind();
+
+		for (const Asteroid& asteroid : secondAsteroidParticles) {
+			cy::Matrix4f mvp = secondAsteroidProjMatrix * secondAsteroidViewMatrix * asteroid.modelMatrix * secondAsteroidRotationMatrix;
+			GLuint asteroidParticleMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
+			glUniformMatrix4fv(asteroidParticleMVP, 1, GL_FALSE, &mvp(0, 0));
+
+			glBindVertexArray(secondAsteroidVAO);
+			glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+		}
 	}
 
 	// swap buffers
@@ -404,11 +414,10 @@ void update() {
 	}
 
 	if (checkCollision() && !particlesGenerated) {
-		// explode asteroids and make smaller pieces
+		// explode asteroids and make smaller particles
 		exploded = true;
-		//generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles);
-		generateParticles(firstAsteroidModelMatrix.GetTranslation(), 260, firstAsteroidParticles);
-		//generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles);
+		generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles);
+		generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles);
 	}
 }
 
