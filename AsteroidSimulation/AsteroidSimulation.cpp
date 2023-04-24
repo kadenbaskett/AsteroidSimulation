@@ -226,6 +226,7 @@ void initialize() {
 	firstAsteroidRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
 	firstAsteroidModelMatrix = cy::Matrix4f(1.0f);
 	firstAsteroidModelMatrix.SetScale(.025);
+	firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(-4.0f, -2.0f, 0.0f));
 
 	// second asteroid matrices
 
