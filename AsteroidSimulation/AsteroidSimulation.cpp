@@ -407,7 +407,7 @@ void update() {
 		// explode asteroids and make smaller pieces
 		exploded = true;
 		//generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles);
-		generateParticles(firstAsteroidModelMatrix.GetTranslation(), 2, firstAsteroidParticles);
+		generateParticles(firstAsteroidModelMatrix.GetTranslation(), 260, firstAsteroidParticles);
 		//generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles);
 	}
 }
@@ -571,26 +571,12 @@ bool checkCollision() {
 }
 
 void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid> &asteroidParticles) {
-	bool first = true;
 
 	for (int i = 0; i < particleNum; i++) {
 		Asteroid asteroidParticle;
 
-		if (first) {
-			//asteroidParticle.modelMatrix.AddTranslation(cy::Vec3f(getRandomFloat(-4.0f, 4.0f), getRandomFloat(-4.0f, 4.0f), getRandomFloat(-1.0f, 1.0f)));
-			asteroidParticle.scale(.005);
-			asteroidParticle.move(cy::Vec3f(3.5f, 2.0f, 0.0f));
-			//asteroidParticle.modelMatrix.SetScale(getRandomFloat(.001, .008));
-			first = false;
-		}
-		else {
-			asteroidParticle.scale(.005);
-			asteroidParticle.move(cy::Vec3f(-4.0f, -2.0f, 0.0f));
-			//asteroidParticle.modelMatrix.SetScale(getRandomFloat(.001, .008));
-		}
-
-		
-		//asteroidParticle.velocity = cy::Vec3f(getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f));
+		asteroidParticle.scale(getRandomFloat(.0001, .0015));
+		asteroidParticle.move(cy::Vec3f(getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f)));
 		asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
 
 		asteroidParticles.push_back(asteroidParticle);
@@ -637,10 +623,12 @@ float toRadians(float degrees) {
 	return degrees * (3.41159264 / 180);
 }
 
-
+/// <summary>
+/// Random number that is more likely to be towards the center of the min and max
+/// </summary>
 float getRandomFloat(float min, float max) {
-	float random = ((float)rand()) / (float)RAND_MAX;
-	float diff = max - min;
-	float r = random * diff + min;
-	return r;
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::normal_distribution<float> distribution((min + max) / 2.0f, (max - min) / 3.0f);
+	return distribution(gen);
 }
