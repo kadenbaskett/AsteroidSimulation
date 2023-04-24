@@ -18,6 +18,7 @@
 // callbacks
 void render();
 void keyboard(unsigned char key, int x, int y);
+void keyboardSpecial(int key, int x, int y);
 void handleMouse(int button, int state, int x, int y);
 void handleMouseMotion(int x, int y);
 void idle();
@@ -31,6 +32,7 @@ void buildSkyboxShaders();
 void buildFirstAsteroidShaders();
 void buildSecondAsteroidShaders();
 float toRadians(float degrees);
+void resetSimulation();
 
 // space skybox enviroment
 cy::GLSLProgram skyboxProgram;
@@ -111,6 +113,8 @@ float currAngleX, currAngleY; //current x and y value for left click
 
 float motionScale = .2;
 
+bool simulating = false;
+
 
 int main(int argc, char** argv)
 {
@@ -119,7 +123,6 @@ int main(int argc, char** argv)
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(windowWidth, windowHeight);
 	glutCreateWindow("Asteroid Simulation");
-	//glutFullScreen();
 
 	GLenum res = glewInit();
 	if (res != GLEW_OK)
@@ -130,6 +133,7 @@ int main(int argc, char** argv)
 
 	glutDisplayFunc(render);
 	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(keyboardSpecial);
 	glutMouseFunc(handleMouse);
 	glutMotionFunc(handleMouseMotion);
 	glutIdleFunc(idle);
@@ -190,6 +194,16 @@ void keyboard(unsigned char key, int x, int y) {
 	if (key == 27) {
 		exit(0); // handle escape key
 	}
+	else if (key == ' ') {
+		simulating = true; // handle space bar
+	}
+}
+
+void keyboardSpecial(int key, int x, int y) {
+	if (key == GLUT_KEY_CTRL_L || key == GLUT_KEY_CTRL_R) {
+		simulating = false;
+		resetSimulation(); // handle control key
+	}
 }
 
 void handleMouse(int button, int state, int x, int y) {
@@ -233,8 +247,7 @@ void idle() {
 	glutPostRedisplay();
 }
 
-// helpers
-void initialize() {
+void resetSimulation() {
 	// common matrices /vectors
 	cameraPos = cy::Vec3f(0.0f, 0.0f, 10.0f);
 
@@ -261,7 +274,10 @@ void initialize() {
 	secondAsteroidModelMatrix = cy::Matrix4f(1.0f);
 	secondAsteroidModelMatrix.SetScale(.015);
 	secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(3.5f, 2.0f, 0.0f));
-
+}
+// helpers
+void initialize() {
+	resetSimulation();
 
 	buildSkyboxShaders();
 	buildFirstAsteroidShaders();
@@ -286,6 +302,12 @@ void update() {
 	secondAsteroidViewMatrix.SetView(cameraPos, cy::Vec3f(0.0f, 0.0f, 0.0f), cy::Vec3f(0.0f, 1.0f, 0.0f));
 	secondAsteroidRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
 	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
+
+	if (simulating) {
+		// move asteroids towards eachother
+		firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(0.005f, 0.0025f, 0.0));
+		secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(-0.005f, -0.0025f, 0.0));
+	}
 }
 
 void loadSkybox()
