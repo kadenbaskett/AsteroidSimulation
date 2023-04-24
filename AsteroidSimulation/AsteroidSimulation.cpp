@@ -161,7 +161,7 @@ void render() {
 
 	// draw first asteroid
 	firstAsteroidProgram.Bind();
-	firstAsteroidProgram["asteroidTexture"] = 4;
+	firstAsteroidProgram["asteroidTexture"] = 1;
 
 	GLuint firstAsteroidMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
 	glUniformMatrix4fv(firstAsteroidMVP, 1, GL_FALSE, &firstAsteroidMVPMatrix(0, 0));
@@ -171,7 +171,7 @@ void render() {
 
 	// draw second asteroid
 	secondAsteroidProgram.Bind();
-	secondAsteroidProgram["asteroidTexture"] = 4;
+	secondAsteroidProgram["asteroidTexture"] = 1;
 
 	GLuint secondAsteroidMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
 	glUniformMatrix4fv(secondAsteroidMVP, 1, GL_FALSE, &secondAsteroidMVPMatrix(0, 0));
@@ -355,7 +355,6 @@ void loadSkybox()
 
 void loadAsteroids()
 {
-	//unsigned err = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
 	unsigned err = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
 	if (err) {
 		std::cout << "Error decoding asterodd texture png." << std::endl;
@@ -364,7 +363,7 @@ void loadAsteroids()
 	asteroidTexture.Initialize();
 	asteroidTexture.SetImage(&astroidTextureImage[0], 4, asteroidTextureWidth, asteroidTextureHeight);
 	asteroidTexture.BuildMipmaps();
-	asteroidTexture.Bind(4);
+	asteroidTexture.Bind(1);
 
 	asteroidMesh.LoadFromFileObj("asteroid.obj");
 	asteroidMesh.ComputeNormals();
