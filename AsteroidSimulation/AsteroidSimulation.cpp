@@ -25,12 +25,11 @@ void idle();
 // helpers
 void initialize();
 void update();
-GLuint loadSkybox();
+void loadSkybox();
 void loadAsteroids();
 void buildSkyboxShaders();
 void buildFirstAsteroidShaders();
 void buildSecondAsteroidShaders();
-void updatePhysics();
 float toRadians(float degrees);
 
 // space skybox enviroment
@@ -265,7 +264,7 @@ void initialize() {
 	buildFirstAsteroidShaders();
 	buildSecondAsteroidShaders();
 
-	skyboxTexture = loadSkybox();
+	loadSkybox();
 	loadAsteroids();
 }
 
@@ -286,7 +285,7 @@ void update() {
 	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
 }
 
-GLuint loadSkybox()
+void loadSkybox()
 {
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -351,7 +350,7 @@ GLuint loadSkybox()
 	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
 	glVertexAttribPointer(skyboxPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 
-	return textureID;
+	std::cout << "Finished loading space enviroment sky box." << std::endl;
 }
 
 void loadAsteroids()
@@ -401,6 +400,8 @@ void loadAsteroids()
 	glEnableVertexAttribArray(secondAsteroidPos);
 	glBindBuffer(GL_ARRAY_BUFFER, firstAsteroidVBO);
 	glVertexAttribPointer(secondAsteroidPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+
+	std::cout << "Finished loading asteroids." << std::endl;
 }
 
 void buildSkyboxShaders() {
@@ -422,10 +423,6 @@ void buildSecondAsteroidShaders() {
 	if (!secondAsteroidShadersCompiled) {
 		std::cout << "Second asteroid shaders failed to compile!" << std::endl;
 	}
-}
-
-void updatePhysics() {
-
 }
 
 float toRadians(float degrees) {
