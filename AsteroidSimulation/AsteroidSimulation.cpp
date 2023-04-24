@@ -59,9 +59,14 @@ std::vector<unsigned char> spaceFace6;
 // both asteroids
 std::vector<cy::Vec3f> asteroidVertices;
 cy::TriMesh asteroidMesh;
+
 cyGLTexture2D asteroidTexture;
 std::vector<unsigned char> astroidTextureImage;
 unsigned asteroidTextureWidth, asteroidTextureHeight = 2048;
+
+cyGLTexture2D asteroidHeight;
+std::vector<unsigned char> astroidHeightImage;
+unsigned asteroidHeightWidth, asteroidHeightHeight = 2048;
 
 // asteroid 1
 cy::GLSLProgram firstAsteroidProgram;
@@ -161,7 +166,6 @@ void render() {
 
 	// draw first asteroid
 	firstAsteroidProgram.Bind();
-	firstAsteroidProgram["asteroidTexture"] = 1;
 
 	GLuint firstAsteroidMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
 	glUniformMatrix4fv(firstAsteroidMVP, 1, GL_FALSE, &firstAsteroidMVPMatrix(0, 0));
@@ -171,7 +175,6 @@ void render() {
 
 	// draw second asteroid
 	secondAsteroidProgram.Bind();
-	secondAsteroidProgram["asteroidTexture"] = 1;
 
 	GLuint secondAsteroidMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
 	glUniformMatrix4fv(secondAsteroidMVP, 1, GL_FALSE, &secondAsteroidMVPMatrix(0, 0));
@@ -355,15 +358,24 @@ void loadSkybox()
 
 void loadAsteroids()
 {
-	unsigned err = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
-	if (err) {
-		std::cout << "Error decoding asterodd texture png." << std::endl;
+	unsigned err1 = lodepng::decode(astroidTextureImage, asteroidTextureWidth, asteroidTextureHeight, "asteroidTexture.PNG");
+	if (err1) {
+		std::cout << "Error decoding asteroid texture png." << std::endl;
+	}
+
+	unsigned err2 = lodepng::decode(astroidHeightImage, asteroidHeightWidth, asteroidHeightHeight, "asteroidHeight.PNG");
+	if (err2) {
+		std::cout << "Error decoding asteroid height png." << std::endl;
 	}
 
 	asteroidTexture.Initialize();
+	asteroidHeight.Initialize();
 	asteroidTexture.SetImage(&astroidTextureImage[0], 4, asteroidTextureWidth, asteroidTextureHeight);
+	asteroidHeight.SetImage(&astroidHeightImage[0], 4, asteroidHeightWidth, asteroidHeightHeight);
 	asteroidTexture.BuildMipmaps();
+	asteroidHeight.BuildMipmaps();
 	asteroidTexture.Bind(1);
+	asteroidHeight.Bind(2);
 
 	asteroidMesh.LoadFromFileObj("asteroid.obj");
 	asteroidMesh.ComputeNormals();
@@ -399,6 +411,12 @@ void loadAsteroids()
 	glEnableVertexAttribArray(secondAsteroidPos);
 	glBindBuffer(GL_ARRAY_BUFFER, firstAsteroidVBO);
 	glVertexAttribPointer(secondAsteroidPos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+
+	firstAsteroidProgram["asteroidTexture"] = 1;
+	secondAsteroidProgram["asteroidTexture"] = 1;
+
+	firstAsteroidProgram["asteroidDisplacement"] = 2;
+	secondAsteroidProgram["asteroidDisplacement"] = 2;
 
 	std::cout << "Finished loading asteroids." << std::endl;
 }
