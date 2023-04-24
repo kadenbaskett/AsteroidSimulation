@@ -378,6 +378,13 @@ void resetSimulation() {
 	secondAsteroidModelMatrix = cy::Matrix4f(1.0f);
 	secondAsteroidModelMatrix.SetScale(secondAsteroidScale);
 	secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(3.5f, 2.0f, 0.0f));
+
+	simulating = false;
+	exploded = false;
+	particlesGenerated = false;
+
+	firstAsteroidParticles.clear();
+	secondAsteroidParticles.clear();
 }
 // helpers
 void initialize() {
