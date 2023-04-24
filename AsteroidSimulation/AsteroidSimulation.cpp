@@ -5,6 +5,7 @@
 * Final Project - Asteroid Simulation
 */
 
+#include <random>
 #include <iostream>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
@@ -13,6 +14,58 @@
 #include "cyGL.h"
 #include "cyMatrix.h"
 #include "lodepng.h"
+
+/// <summary>
+/// Asteroid class for manipulating asteroid particles
+/// </summary>
+class Asteroid {
+public:
+	cy::Matrix4f modelMatrix;
+	cy::Vec3f velocity;
+	float radius;
+
+	Asteroid() {
+		modelMatrix = cy::Matrix4f(1.0f);
+		velocity.Zero();
+		radius = 0.0f;
+	}
+
+	void update(float deltaTime) {
+		cy::Vec3f position = modelMatrix.GetTranslation();
+		position += velocity * deltaTime;
+		modelMatrix.SetTranslation(position);
+	}
+
+	void move(cy::Vec3f translation) {
+		modelMatrix.AddTranslation(translation);
+	}
+
+	void scale(float amount) {
+		modelMatrix.SetScale(amount);
+	}
+
+	bool checkCollision(const Asteroid& other) const {
+		cy::Vec3f currentAsteroidCenter = modelMatrix.GetTranslation();
+		cy::Vec3f otherAsteroidCenter = other.modelMatrix.GetTranslation();
+
+		// compute distance between model's centers
+		float dx = otherAsteroidCenter.x - currentAsteroidCenter.x;
+		float dy = otherAsteroidCenter.y - currentAsteroidCenter.y;
+		float dz = otherAsteroidCenter.z - currentAsteroidCenter.z;
+		float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+		float radiusSum = radius + other.radius;
+
+		if (distance <= radiusSum) {
+			// asteroids are colliding
+			return true;
+		}
+		else {
+			// asteroids are NOT colliding
+			return false;
+		}
+	}
+};
 
 
 // callbacks
@@ -35,6 +88,8 @@ float toRadians(float degrees);
 void resetSimulation();
 bool checkCollision();
 float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale);
+void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid>& asteroidParticles);
+float getRandomFloat(float min, float max);
 
 // space skybox enviroment
 cy::GLSLProgram skyboxProgram;
@@ -72,6 +127,10 @@ cyGLTexture2D asteroidHeight;
 std::vector<unsigned char> astroidHeightImage;
 unsigned asteroidHeightWidth, asteroidHeightHeight = 2048;
 
+float radiusScale = 0.65f;
+bool exploded = false;
+bool particlesGenerated = false;
+
 // asteroid 1
 cy::GLSLProgram firstAsteroidProgram;
 
@@ -87,6 +146,10 @@ cy::Matrix4f firstAsteroidModelMatrix;
 float firstAsteroidRadius;
 
 float firstAsteroidScale = .02f;
+
+unsigned int firstAstroidParticleNum = 10;
+
+std::vector<Asteroid> firstAsteroidParticles;
 
 // asteroid 2
 cy::GLSLProgram secondAsteroidProgram;
@@ -104,7 +167,9 @@ float secondAsteroidRadius;
 
 float secondAsteroidScale = .015f;
 
-float radiusScale = 0.65f;
+unsigned int secondAstroidParticleNum = 15;
+
+std::vector<Asteroid> secondAsteroidParticles;
 
 // display window
 float windowWidth = 1024;
@@ -180,23 +245,40 @@ void render() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glDepthMask(GL_TRUE);
 
-	// draw first asteroid
-	firstAsteroidProgram.Bind();
+	if (!exploded) {
+		// draw first asteroid
+		firstAsteroidProgram.Bind();
 
-	GLuint firstAsteroidMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
-	glUniformMatrix4fv(firstAsteroidMVP, 1, GL_FALSE, &firstAsteroidMVPMatrix(0, 0));
+		GLuint firstAsteroidMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
+		glUniformMatrix4fv(firstAsteroidMVP, 1, GL_FALSE, &firstAsteroidMVPMatrix(0, 0));
 
-	glBindVertexArray(firstAsteroidVAO);
-	glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+		glBindVertexArray(firstAsteroidVAO);
+		glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
 
-	// draw second asteroid
-	secondAsteroidProgram.Bind();
+		// draw second asteroid
+		secondAsteroidProgram.Bind();
 
-	GLuint secondAsteroidMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
-	glUniformMatrix4fv(secondAsteroidMVP, 1, GL_FALSE, &secondAsteroidMVPMatrix(0, 0));
+		GLuint secondAsteroidMVP = glGetUniformLocation(secondAsteroidProgram.GetID(), "mvp");
+		glUniformMatrix4fv(secondAsteroidMVP, 1, GL_FALSE, &secondAsteroidMVPMatrix(0, 0));
 
-	glBindVertexArray(secondAsteroidVAO);
-	glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+		glBindVertexArray(secondAsteroidVAO);
+		glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+	}
+	else {
+		// draw first asteroid's particles
+		firstAsteroidProgram.Bind();
+
+		for (const Asteroid& asteroid : firstAsteroidParticles) {
+			cy::Matrix4f mvp = firstAsteroidProjMatrix * firstAsteroidViewMatrix * asteroid.modelMatrix * firstAsteroidRotationMatrix;
+			GLuint asteroidParticleMVP = glGetUniformLocation(firstAsteroidProgram.GetID(), "mvp");
+			glUniformMatrix4fv(asteroidParticleMVP, 1, GL_FALSE, &mvp(0, 0));
+
+			glBindVertexArray(firstAsteroidVAO);
+			glDrawArrays(GL_TRIANGLES, 0, asteroidVertices.size());
+		}
+
+		// draw second asteroid's particles
+	}
 
 	// swap buffers
 	glutSwapBuffers();
@@ -315,15 +397,18 @@ void update() {
 	secondAsteroidRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
 	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
 
-	if (simulating) {
+	if (simulating && !exploded) {
 		// move asteroids towards eachother
 		firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(0.005f, 0.0025f, 0.0));
 		secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(-0.005f, -0.0025f, 0.0));
 	}
 
-	if (checkCollision()) {
+	if (checkCollision() && !particlesGenerated) {
 		// explode asteroids and make smaller pieces
-		resetSimulation();
+		exploded = true;
+		//generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles);
+		generateParticles(firstAsteroidModelMatrix.GetTranslation(), 2, firstAsteroidParticles);
+		//generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles);
 	}
 }
 
@@ -485,6 +570,35 @@ bool checkCollision() {
 	}
 }
 
+void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid> &asteroidParticles) {
+	bool first = true;
+
+	for (int i = 0; i < particleNum; i++) {
+		Asteroid asteroidParticle;
+
+		if (first) {
+			//asteroidParticle.modelMatrix.AddTranslation(cy::Vec3f(getRandomFloat(-4.0f, 4.0f), getRandomFloat(-4.0f, 4.0f), getRandomFloat(-1.0f, 1.0f)));
+			asteroidParticle.scale(.005);
+			asteroidParticle.move(cy::Vec3f(3.5f, 2.0f, 0.0f));
+			//asteroidParticle.modelMatrix.SetScale(getRandomFloat(.001, .008));
+			first = false;
+		}
+		else {
+			asteroidParticle.scale(.005);
+			asteroidParticle.move(cy::Vec3f(-4.0f, -2.0f, 0.0f));
+			//asteroidParticle.modelMatrix.SetScale(getRandomFloat(.001, .008));
+		}
+
+		
+		//asteroidParticle.velocity = cy::Vec3f(getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f));
+		asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+
+		asteroidParticles.push_back(asteroidParticle);
+	}
+
+	particlesGenerated = true;
+}
+
 float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale) {
 	float radius = 0.0f;
 
@@ -524,3 +638,9 @@ float toRadians(float degrees) {
 }
 
 
+float getRandomFloat(float min, float max) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float diff = max - min;
+	float r = random * diff + min;
+	return r;
+}

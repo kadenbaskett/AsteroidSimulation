@@ -127,10 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Asteroid.cpp" />
     <ClCompile Include="AsteroidSimulation.cpp" />
     <ClCompile Include="lodepng.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Asteroid.h" />
     <ClInclude Include="cyCore.h" />
     <ClInclude Include="cyMatrix.h" />
     <ClInclude Include="cyTriMesh.h" />
