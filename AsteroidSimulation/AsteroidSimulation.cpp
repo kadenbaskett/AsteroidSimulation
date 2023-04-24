@@ -88,7 +88,7 @@ float toRadians(float degrees);
 void resetSimulation();
 bool checkCollision();
 float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale);
-void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid>& asteroidParticles);
+void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid>& asteroidParticles, bool isFirst);
 float getRandomFloat(float min, float max);
 
 // space skybox enviroment
@@ -423,8 +423,8 @@ void update() {
 	if (checkCollision() && !particlesGenerated) {
 		// explode asteroids and make smaller particles
 		exploded = true;
-		generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles);
-		generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles);
+		generateParticles(firstAsteroidModelMatrix.GetTranslation(), firstAstroidParticleNum, firstAsteroidParticles, true);
+		generateParticles(secondAsteroidModelMatrix.GetTranslation(), secondAstroidParticleNum, secondAsteroidParticles, false);
 	}
 }
 
@@ -586,14 +586,23 @@ bool checkCollision() {
 	}
 }
 
-void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid> &asteroidParticles) {
+void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid> &asteroidParticles, bool isFirst) {
 
 	for (int i = 0; i < particleNum; i++) {
 		Asteroid asteroidParticle;
 
 		asteroidParticle.scale(getRandomFloat(.0001, .0015));
-		asteroidParticle.move(cy::Vec3f(getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f), getRandomFloat(-1.0f, 1.0f)));
-		asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+		if (isFirst) {
+			// first astoroid particles
+			asteroidParticle.move(cy::Vec3f(getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f)));
+			asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+		}
+		else {
+			// second astroid particles
+			asteroidParticle.move(cy::Vec3f(getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f)));
+			asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+		}
+
 
 		asteroidParticles.push_back(asteroidParticle);
 	}
