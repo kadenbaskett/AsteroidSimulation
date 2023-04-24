@@ -33,6 +33,8 @@ void buildFirstAsteroidShaders();
 void buildSecondAsteroidShaders();
 float toRadians(float degrees);
 void resetSimulation();
+bool checkCollision();
+float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale);
 
 // space skybox enviroment
 cy::GLSLProgram skyboxProgram;
@@ -82,6 +84,10 @@ cy::Matrix4f firstAsteroidProjMatrix;
 cy::Matrix4f firstAsteroidRotationMatrix;
 cy::Matrix4f firstAsteroidModelMatrix;
 
+float firstAsteroidRadius;
+
+float firstAsteroidScale = .02f;
+
 // asteroid 2
 cy::GLSLProgram secondAsteroidProgram;
 
@@ -93,6 +99,12 @@ cy::Matrix4f secondAsteroidViewMatrix;
 cy::Matrix4f secondAsteroidProjMatrix;
 cy::Matrix4f secondAsteroidRotationMatrix;
 cy::Matrix4f secondAsteroidModelMatrix;
+
+float secondAsteroidRadius;
+
+float secondAsteroidScale = .015f;
+
+float radiusScale = 0.65f;
 
 // display window
 float windowWidth = 1024;
@@ -263,7 +275,7 @@ void resetSimulation() {
 	firstAsteroidProjMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
 	firstAsteroidRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
 	firstAsteroidModelMatrix = cy::Matrix4f(1.0f);
-	firstAsteroidModelMatrix.SetScale(.02);
+	firstAsteroidModelMatrix.SetScale(firstAsteroidScale);
 	firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(-4.0f, -2.0f, 0.0f));
 
 	// second asteroid matrices
@@ -272,7 +284,7 @@ void resetSimulation() {
 	secondAsteroidProjMatrix.SetPerspective(45.0f, (GLfloat)windowWidth / (GLfloat)windowHeight, 0.1f, 100.0f);
 	secondAsteroidRotationMatrix.SetRotationXYZ(cameraX, cameraY, 0.0f);
 	secondAsteroidModelMatrix = cy::Matrix4f(1.0f);
-	secondAsteroidModelMatrix.SetScale(.015);
+	secondAsteroidModelMatrix.SetScale(secondAsteroidScale);
 	secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(3.5f, 2.0f, 0.0f));
 }
 // helpers
@@ -307,6 +319,11 @@ void update() {
 		// move asteroids towards eachother
 		firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(0.005f, 0.0025f, 0.0));
 		secondAsteroidModelMatrix.AddTranslation(cy::Vec3f(-0.005f, -0.0025f, 0.0));
+	}
+
+	if (checkCollision()) {
+		// explode asteroids and make smaller pieces
+		resetSimulation();
 	}
 }
 
@@ -408,6 +425,9 @@ void loadAsteroids()
 		asteroidVertices.push_back(asteroidMesh.V(asteroidMesh.F(i).v[2])); //store vertex 3
 	}
 
+	firstAsteroidRadius = getModelRadius(asteroidVertices, firstAsteroidScale);
+	secondAsteroidRadius = getModelRadius(asteroidVertices, secondAsteroidScale);
+
 	// first asteroid
 	glGenVertexArrays(1, &firstAsteroidVAO);
 	glBindVertexArray(firstAsteroidVAO);
@@ -441,6 +461,41 @@ void loadAsteroids()
 	secondAsteroidProgram["asteroidDisplacement"] = 2;
 
 	std::cout << "Finished loading asteroids." << std::endl;
+}
+
+bool checkCollision() {
+	cy::Vec3f firstAsteroidCenter = firstAsteroidModelMatrix.GetTranslation();
+	cy::Vec3f secondAsteroidCenter = secondAsteroidModelMatrix.GetTranslation();
+
+	// compute distance between model'c centers
+	float dx = secondAsteroidCenter.x - firstAsteroidCenter.x;
+	float dy = secondAsteroidCenter.y - firstAsteroidCenter.y;
+	float dz = secondAsteroidCenter.z - firstAsteroidCenter.z;
+	float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+	float radiusSum = firstAsteroidRadius + secondAsteroidRadius;
+
+	if (distance <= radiusSum) {
+		// asteroids are colliding
+		return true;
+	}
+	else {
+		// asteroids are NOT colliding
+		return false;
+	}
+}
+
+float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale) {
+	float radius = 0.0f;
+
+	for (const cy::Vec3f& vertex : vertices) {
+		float distance = scale * vertex.Length();
+		if (distance > radius) {
+			radius = distance;
+		}
+	}
+
+	return radius * radiusScale;
 }
 
 void buildSkyboxShaders() {
