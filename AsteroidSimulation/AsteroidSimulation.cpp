@@ -1,6 +1,6 @@
 /*
 * Kaden Baskett
-* 04/21/2023
+* 04/24/2023
 * Interactive Computer Graphics
 * Final Project - Asteroid Simulation
 */
@@ -25,12 +25,34 @@ public:
 	cy::Vec3f velocity;
 	float radius;
 	float mass;
+	bool updated = false;
 
 	Asteroid() {
 		modelMatrix = cy::Matrix4f(1.0f);
 		velocity.Zero();
 		radius = 0.0f;
 		mass = 0.0f;
+	}
+
+	void updateVelocity(Asteroid& other) {
+		cy::Vec3f momentum = mass * velocity + other.mass * other.velocity;
+		cy::Vec3f centerOfMassVelocity = momentum / (mass + other.mass);
+
+		cy::Vec3f firstCMVelocity = velocity - centerOfMassVelocity;
+		cy::Vec3f secondCMVelocity = other.velocity - centerOfMassVelocity;
+
+		if (!updated) {
+			cy::Vec3f firstCMVelocityNew = (firstCMVelocity * (mass - other.mass) + 2 * other.mass * secondCMVelocity) / (mass + other.mass);
+			cy::Vec3f firstVelocityNew = firstCMVelocityNew + firstCMVelocity;
+			velocity = firstVelocityNew;
+			updated = true;
+		}
+		if (!other.updated) {
+			cy::Vec3f secondCMVelocityNew = (secondCMVelocity * (other.mass - mass) + 2 * mass * firstCMVelocity) / (mass + other.mass);
+			cy::Vec3f secondVelocityNew = secondCMVelocityNew + secondCMVelocity;
+			other.velocity = secondVelocityNew;
+			other.updated = true;
+		}
 	}
 
 	void updatePosition() {
@@ -134,7 +156,7 @@ float radiusScale = 0.65f;
 bool exploded = false;
 bool particlesGenerated = false;
 
-float asteroidDensity = 100.0f;
+float asteroidDensity = 1000.0f;
 
 // asteroid 1
 cy::GLSLProgram firstAsteroidProgram;
@@ -190,8 +212,8 @@ float cameraY = 0.0f; // y axis camera movements
 
 int prevX, prevY = 0;
 
-float prevAngleX, prevAngleY;  //previous x and y value for left click
-float currAngleX, currAngleY; //current x and y value for left click
+float prevAngleX, prevAngleY;  // previous x and y value for left click
+float currAngleX, currAngleY; // current x and y value for left click
 
 float motionScale = .2;
 
@@ -393,7 +415,7 @@ void resetSimulation() {
 	firstAsteroidParticles.clear();
 	secondAsteroidParticles.clear();
 }
-// helpers
+
 void initialize() {
 	resetSimulation();
 
@@ -421,24 +443,34 @@ void update() {
 	secondAsteroidRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
 	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
 
-	// update first asteroids particle's positions
+	//// update first asteroids particle's positions and velocites
 	for (Asteroid& asteroid : firstAsteroidParticles) {
-		//for (Asteroid& otherAsteroid : secondAsteroidParticles) {
-		//	if (asteroid.checkCollision(otherAsteroid)) {
-		//		// update new velocities resulting from collision
-		//	}
-		//}
-		//for (Asteroid& otherAsteroid : firstAsteroidParticles) {
-		//	if (asteroid.checkCollision(otherAsteroid)) {
-		//		// update new velocities resulting from collision
-		//	}
-		//}
+		for (Asteroid& otherAsteroid : secondAsteroidParticles) {
+			if (asteroid.checkCollision(otherAsteroid)) {
+				asteroid.updateVelocity(otherAsteroid);
+			}
+		}
+
 		asteroid.updatePosition();
 	}
 
-	// update second asteroids particle's positions
+	// update second asteroids particle's positions and velocities
 	for (Asteroid& asteroid : secondAsteroidParticles) {
+		for (Asteroid& otherAsteroid : firstAsteroidParticles) {
+			if (asteroid.checkCollision(otherAsteroid)) {
+				asteroid.updateVelocity(otherAsteroid);
+			}
+		}
+
 		asteroid.updatePosition();
+	}
+
+	// set updated to false for next time
+	for (Asteroid& asteroid : firstAsteroidParticles) {
+		asteroid.updated = false;
+	}
+	for (Asteroid& asteroid : secondAsteroidParticles) {
+		asteroid.updated = false;
 	}
 
 	if (simulating && !exploded) {
@@ -620,7 +652,7 @@ void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std
 		float scale = getRandomFloat(.0001, .0015);
 		asteroidParticle.scale(scale);
 		asteroidParticle.radius = getModelRadius(asteroidVertices, scale);
-		asteroidParticle.mass = estimateMass(asteroidParticle.radius);
+ 		asteroidParticle.mass = estimateMass(asteroidParticle.radius);
 
 		if (isFirst) {
 			// first astoroid particles
