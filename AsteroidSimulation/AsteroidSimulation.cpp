@@ -429,7 +429,6 @@ void update() {
 
 	// update second asteroids particle's positions
 	for (Asteroid& asteroid : secondAsteroidParticles) {
-
 		asteroid.updatePosition();
 	}
 
@@ -609,8 +608,10 @@ void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std
 
 	for (int i = 0; i < particleNum; i++) {
 		Asteroid asteroidParticle;
+		float scale = getRandomFloat(.0001, .0015);
+		asteroidParticle.scale(scale);
+		asteroidParticle.radius = getModelRadius(asteroidVertices, scale);
 
-		asteroidParticle.scale(getRandomFloat(.0001, .0015));
 		if (isFirst) {
 			// first astoroid particles
 			asteroidParticle.move(cy::Vec3f(getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f)));
@@ -621,7 +622,6 @@ void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std
 			asteroidParticle.move(cy::Vec3f(getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f)));
 			asteroidParticle.velocity = cy::Vec3f(getRandomFloat(-0.01f, 0.05f), getRandomFloat(-0.01f, 0.05f), getRandomFloat(-0.05f, 0.1f));
 		}
-
 
 		asteroidParticles.push_back(asteroidParticle);
 	}
