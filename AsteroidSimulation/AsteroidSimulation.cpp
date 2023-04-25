@@ -30,10 +30,8 @@ public:
 		radius = 0.0f;
 	}
 
-	void update(float deltaTime) {
-		cy::Vec3f position = modelMatrix.GetTranslation();
-		position += velocity * deltaTime;
-		modelMatrix.SetTranslation(position);
+	void updatePosition() {
+		modelMatrix.AddTranslation(velocity);
 	}
 
 	void move(cy::Vec3f translation) {
@@ -414,6 +412,27 @@ void update() {
 	secondAsteroidRotationMatrix.SetRotationXYZ(toRadians(cameraX), toRadians(cameraY), 0.0f);
 	secondAsteroidMVPMatrix = secondAsteroidProjMatrix * secondAsteroidViewMatrix * secondAsteroidModelMatrix * secondAsteroidRotationMatrix;
 
+	// update first asteroids particle's positions
+	for (Asteroid& asteroid : firstAsteroidParticles) {
+		//for (Asteroid& otherAsteroid : secondAsteroidParticles) {
+		//	if (asteroid.checkCollision(otherAsteroid)) {
+		//		// update new velocities resulting from collision
+		//	}
+		//}
+		//for (Asteroid& otherAsteroid : firstAsteroidParticles) {
+		//	if (asteroid.checkCollision(otherAsteroid)) {
+		//		// update new velocities resulting from collision
+		//	}
+		//}
+		asteroid.updatePosition();
+	}
+
+	// update second asteroids particle's positions
+	for (Asteroid& asteroid : secondAsteroidParticles) {
+
+		asteroid.updatePosition();
+	}
+
 	if (simulating && !exploded) {
 		// move asteroids towards eachother
 		firstAsteroidModelMatrix.AddTranslation(cy::Vec3f(0.005f, 0.0025f, 0.0));
@@ -595,12 +614,12 @@ void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std
 		if (isFirst) {
 			// first astoroid particles
 			asteroidParticle.move(cy::Vec3f(getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f), getRandomFloat(-1.5f, 0.25f)));
-			asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+			asteroidParticle.velocity = cy::Vec3f(getRandomFloat(-0.05f, 0.01f), getRandomFloat(-0.05f, 0.01f), getRandomFloat(-0.05f, 0.1f));
 		}
 		else {
 			// second astroid particles
 			asteroidParticle.move(cy::Vec3f(getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f), getRandomFloat(-0.25f, 1.5f)));
-			asteroidParticle.velocity = cy::Vec3f(0.0f, 0.0f, 0.0f);
+			asteroidParticle.velocity = cy::Vec3f(getRandomFloat(-0.01f, 0.05f), getRandomFloat(-0.01f, 0.05f), getRandomFloat(-0.05f, 0.1f));
 		}
 
 
