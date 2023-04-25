@@ -7,6 +7,7 @@
 
 #include <random>
 #include <iostream>
+#include <cmath>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <GL/GL.h>
@@ -23,11 +24,13 @@ public:
 	cy::Matrix4f modelMatrix;
 	cy::Vec3f velocity;
 	float radius;
+	float mass;
 
 	Asteroid() {
 		modelMatrix = cy::Matrix4f(1.0f);
 		velocity.Zero();
 		radius = 0.0f;
+		mass = 0.0f;
 	}
 
 	void updatePosition() {
@@ -88,6 +91,7 @@ bool checkCollision();
 float getModelRadius(const std::vector<cy::Vec3f>& vertices, float scale);
 void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std::vector<Asteroid>& asteroidParticles, bool isFirst);
 float getRandomFloat(float min, float max);
+double estimateMass(double radius);
 
 // space skybox enviroment
 cy::GLSLProgram skyboxProgram;
@@ -126,8 +130,11 @@ std::vector<unsigned char> astroidHeightImage;
 unsigned asteroidHeightWidth, asteroidHeightHeight = 2048;
 
 float radiusScale = 0.65f;
+
 bool exploded = false;
 bool particlesGenerated = false;
+
+float asteroidDensity = 100.0f;
 
 // asteroid 1
 cy::GLSLProgram firstAsteroidProgram;
@@ -189,6 +196,8 @@ float currAngleX, currAngleY; //current x and y value for left click
 float motionScale = .2;
 
 bool simulating = false;
+
+const double pi = 3.14159;
 
 
 int main(int argc, char** argv)
@@ -611,6 +620,7 @@ void generateParticles(cy::Vec3f startingPosition, unsigned int particleNum, std
 		float scale = getRandomFloat(.0001, .0015);
 		asteroidParticle.scale(scale);
 		asteroidParticle.radius = getModelRadius(asteroidVertices, scale);
+		asteroidParticle.mass = estimateMass(asteroidParticle.radius);
 
 		if (isFirst) {
 			// first astoroid particles
@@ -675,4 +685,10 @@ float getRandomFloat(float min, float max) {
 	std::mt19937 gen(rd());
 	std::normal_distribution<float> distribution((min + max) / 2.0f, (max - min) / 3.0f);
 	return distribution(gen);
+}
+
+double estimateMass(double radius) {
+	double volume = (4.0 / 3.0) * pi * pow(radius, 3.0);
+	double mass = asteroidDensity * volume;
+	return mass;
 }
